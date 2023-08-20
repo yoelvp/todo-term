@@ -1,5 +1,5 @@
 [package]
-name = "todo-term"
+name = "todo_term"
 description = "Todo app in term using Rust Lang"
 version = "0.1.0"
 edition = "2021"
@@ -9,4 +9,5 @@ keywords = ["Todo app", "Todo term"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+prettytable-rs = "0.10.0"
 rand = "0.8.5"
