@@ -31,4 +31,4 @@ You can use the application in a very easy and straightforward manner
 |<kbd>q</kbd>| Exit the program     |
 
 ## License
-MIT License
+MIT [License](./LICENSE)
