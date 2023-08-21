@@ -1,7 +1,9 @@
 use prettytable::{color, Attr, Cell, Row, Table};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
-use std::io::{self, Write};
+use std::error::Error;
+use std::fs;
+use std::io::{self, Write, Result};
 
 #[derive(Debug, Clone)]
 struct TodoItem {
@@ -29,8 +31,44 @@ fn paint_cell(text: String, color: String) {
     println!("+{}{}+\x1b[0m", color, dashes);
 }
 
+// Formats the obtained text to the TodoItem struct
+fn parse_todo_item(todo_string: &str) -> Option<TodoItem> {
+    let lines: Vec<&str> = todo_string.lines().collect();
+
+    if lines.len() == 4 {
+        let id = lines[0].to_string();
+        let title = lines[1].to_string();
+        let description = lines[2].to_string();
+        let done = lines[3].to_string();
+
+        Some(TodoItem { id, title, description, done })
+    } else {
+        None
+    }
+}
+
+// Save a new TODO to file
+fn write_new_todo() {}
+
+// Get TODOS from file
+fn read_all_todos(file_path: &str, todos: &mut Vec<TodoItem>) -> Result<(), Box<dyn Error>> {
+    let content = fs::read_to_string(file_path)?;
+    let todos_from_file: Vec<&str> = content.split("\n\n").collect();
+
+    for todo in todos_from_file {
+        if let Some(todo_item) = parse_todo_item(todo) {
+            todos.push(todo_item)
+        }
+    }
+
+    Ok(())
+}
+
+// Function [main]
 fn main() {
+    let file_path = "TODOS";
     let mut todos: Vec<TodoItem> = Vec::new();
+    let mut todos = read_all_todos(file_path, &mut todos);
 
     let todo_1 = TodoItem {
         id: generate_uuid(),
@@ -45,8 +83,8 @@ fn main() {
         done: false,
     };
 
-    todos.push(todo_1);
-    todos.push(todo_2);
+    // todos.push(todo_1);
+    // todos.push(todo_2);
 
     loop {
         let mut input = String::new();
