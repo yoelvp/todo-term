@@ -1,7 +1,7 @@
 use prettytable::{color, Attr, Cell, Row, Table};
 use std::{
-    io::{self, Write},
-    process,
+    fs::File,
+    io::{self, BufRead, BufReader, Read, Write},
 };
 
 #[derive(Debug, Clone)]
@@ -29,10 +29,37 @@ fn write_new_todo() {
     // TODO: write a new todo in file
 }
 
+fn parse_todo_line(line: &str) -> Option<TodoItem> {
+    let parts: Vec<&str> = line.split('?').collect();
+
+    if parts.len() == 4 {
+        if let Ok(id) = parts[0].parse() {
+            return Some(TodoItem {
+                id,
+                title: parts[1].to_string(),
+                description: parts[2].to_string(),
+                completed: parts[3].parse().expect(""),
+            });
+        }
+    }
+
+    None
+}
+
 // Function [main]
-fn main() {
+fn main() -> io::Result<()> {
     let mut todos: Vec<TodoItem> = Vec::new();
     // let mut todos = read_all_todos(file_path, &mut todos);
+    let mut file = File::open("TODOS")?;
+    let mut reader = BufReader::new(file);
+
+    for line in reader.lines() {
+        if let Ok(line) = line {
+            if let Some(todo) = parse_todo_line(&line) {
+                println!("{:?}", todo)
+            }
+        }
+    }
 
     let todo_1 = TodoItem {
         id: generate_id(&todos),
@@ -249,10 +276,7 @@ fn main() {
                     );
                 }
             },
-            "q" => {
-                // break;
-                process::exit(0);
-            }
+            "q" => break,
             _ => {
                 let mut table_invalid_option = Table::new();
                 table_invalid_option
@@ -263,4 +287,6 @@ fn main() {
             }
         }
     }
+
+    Ok(())
 }
