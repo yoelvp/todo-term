@@ -1,15 +1,14 @@
 use prettytable::{color, Attr, Cell, Row, Table};
 use std::{
     fs::File,
-    io::{self, BufRead, BufReader, Read, Write},
+    io::{self, BufRead, BufReader, Write},
 };
 
 #[derive(Debug, Clone)]
 struct TodoItem {
     id: u32,
-    title: String,
-    description: String,
     done: bool,
+    title: String,
 }
 
 fn generate_id(todos: &Vec<TodoItem>) -> u32 {
@@ -24,22 +23,41 @@ fn paint_cell(text: String, color: String) {
     println!("+{}{}+\x1b[0m", color, dashes);
 }
 
+// Load all todos from file
+fn load_all_todos(filename: &str) -> io::Result<Vec<TodoItem>> {
+    let mut todos: Vec<TodoItem> = Vec::new();
+    let file = File::open(filename)?;
+    let reader = BufReader::new(file);
+
+    for line in reader.lines() {
+        if let Ok(line) = line {
+            if let Some(todo) = parse_todo_line(&line) {
+                todos.push(todo)
+            }
+        }
+    }
+
+    Ok(todos)
+}
+
 // Save a new TODO to file
 fn write_new_todo() {
     // TODO: write a new todo in file
 }
 
 fn parse_todo_line(line: &str) -> Option<TodoItem> {
-    let parts: Vec<&str> = line.split('?').collect();
+    let parts: Vec<&str> = line.split("__").collect();
 
-    if parts.len() == 4 {
+    if parts.len() == 3 {
         if let Ok(id) = parts[0].parse() {
-            return Some(TodoItem {
-                id,
-                title: parts[1].to_string(),
-                description: parts[2].to_string(),
-                completed: parts[3].parse().expect(""),
-            });
+            let done = match parts[1] {
+                "true" => true,
+                "false" => false,
+                _ => return None,
+            };
+            let title = parts[2].to_string();
+
+            return Some(TodoItem { id, done, title });
         }
     }
 
@@ -48,33 +66,6 @@ fn parse_todo_line(line: &str) -> Option<TodoItem> {
 
 // Function [main]
 fn main() -> io::Result<()> {
-    let mut todos: Vec<TodoItem> = Vec::new();
-    // let mut todos = read_all_todos(file_path, &mut todos);
-    let mut file = File::open("TODOS")?;
-    let mut reader = BufReader::new(file);
-
-    for line in reader.lines() {
-        if let Ok(line) = line {
-            if let Some(todo) = parse_todo_line(&line) {
-                println!("{:?}", todo)
-            }
-        }
-    }
-
-    let todo_1 = TodoItem {
-        id: generate_id(&todos),
-        title: String::from("Todo 01"),
-        description: String::from("Description of todo 01"),
-        done: false,
-    };
-    todos.push(todo_1);
-    let todo_2 = TodoItem {
-        id: generate_id(&todos),
-        title: String::from("Todo 02"),
-        description: String::from("Description of todo 02"),
-        done: false,
-    };
-    todos.push(todo_2);
 
     loop {
         let mut input = String::new();
@@ -83,13 +74,10 @@ fn main() -> io::Result<()> {
             Cell::new("#")
                 .with_style(Attr::Bold)
                 .with_style(Attr::ForegroundColor(color::GREEN)),
-            Cell::new("TITLE")
-                .with_style(Attr::Bold)
-                .with_style(Attr::ForegroundColor(color::GREEN)),
-            Cell::new("DESCRIPTION")
-                .with_style(Attr::Bold)
-                .with_style(Attr::ForegroundColor(color::GREEN)),
             Cell::new("COMPLETED")
+                .with_style(Attr::Bold)
+                .with_style(Attr::ForegroundColor(color::GREEN)),
+            Cell::new("TITLE")
                 .with_style(Attr::Bold)
                 .with_style(Attr::ForegroundColor(color::GREEN)),
         ]));
@@ -106,26 +94,20 @@ fn main() -> io::Result<()> {
         match input {
             "a" => {
                 let mut title = String::new();
-                let mut description = String::new();
 
                 println!("To create a new TODO you must add the following fields:");
                 println!("title: [String]");
-                println!("description?: [String] [Optional]\n");
 
                 print!("\x1b[32mEnter the title > \x1b[0m");
                 io::stdout().flush().unwrap();
                 io::stdin().read_line(&mut title).expect("Dont read");
 
-                print!("\x1b[32mEnter the description > \x1b[0m");
-                io::stdout().flush().unwrap();
-                io::stdin().read_line(&mut description).expect("Dont");
                 println!();
 
                 let new_todo = TodoItem {
                     id: generate_id(&todos),
-                    title,
-                    description,
                     done: false,
+                    title,
                 };
 
                 todos.push(new_todo);
@@ -133,9 +115,8 @@ fn main() -> io::Result<()> {
                 for todo in todos.iter() {
                     table.add_row(Row::new(vec![
                         Cell::new(&todo.id.to_string()),
-                        Cell::new(&todo.title),
-                        Cell::new(&todo.description),
                         Cell::new(&todo.done.to_string()),
+                        Cell::new(&todo.title),
                     ]));
                 }
 
@@ -146,9 +127,8 @@ fn main() -> io::Result<()> {
                 for todo in todos.iter() {
                     table.add_row(Row::new(vec![
                         Cell::new(&todo.id.to_string()),
-                        Cell::new(&todo.title),
-                        Cell::new(&todo.description),
                         Cell::new(&todo.done.to_string()),
+                        Cell::new(&todo.title),
                     ]));
                 }
                 table.printstd();
@@ -156,7 +136,7 @@ fn main() -> io::Result<()> {
             }
             "d" => loop {
                 let mut input = String::new();
-                print!("Enter the ID of the TODO ID to delete it > ");
+                print!("Enter the ID of the TODO to delete it > ");
                 io::stdout().flush().unwrap();
                 io::stdin()
                     .read_line(&mut input)
@@ -181,16 +161,15 @@ fn main() -> io::Result<()> {
                                 let mut table_removed_todo = Table::new();
                                 let removed_todo = todos.remove(index);
 
-                                println!("\x1b[32m");
-                                println!("The TODO has been successfully deleted\n");
+                                println!("\x1b[32mThe TODO has been successfully deleted\n\x1b[0m");
                                 table_removed_todo.add_row(Row::new(vec![
-                                    Cell::new(&removed_todo.id.to_string()),
-                                    Cell::new(&removed_todo.title),
-                                    Cell::new(&removed_todo.description),
+                                    Cell::new(&removed_todo.id.to_string())
+                                        .with_style(Attr::ForegroundColor(color::GREEN)),
                                     Cell::new(&removed_todo.done.to_string()),
+                                    Cell::new(&removed_todo.title),
                                 ]));
                                 table_removed_todo.printstd();
-                                println!("\x1b[0m");
+                                println!("");
                             } else {
                                 paint_cell(
                                     String::from("The TODO was not found in the list"),
@@ -235,17 +214,12 @@ fn main() -> io::Result<()> {
                                 let mut edited_todo = todos[index].clone();
 
                                 let mut title = String::new();
-                                let mut description = String::new();
 
                                 print!("\x1b[32mEnter the new title > \x1b[0m");
                                 io::stdout().flush().unwrap();
                                 io::stdin().read_line(&mut title).expect("Dont read");
                                 edited_todo.title = title.trim().to_string();
 
-                                print!("\x1b[32mEnter the new description > \x1b[0m");
-                                io::stdout().flush().unwrap();
-                                io::stdin().read_line(&mut description).expect("Dont");
-                                edited_todo.description = description.trim().to_string();
                                 println!();
 
                                 todos[index] = edited_todo;
@@ -254,9 +228,8 @@ fn main() -> io::Result<()> {
                                 println!("The TODO has been successfully edited\n");
                                 table_edited_todo.add_row(Row::new(vec![
                                     Cell::new(&todos[index].id.to_string()),
-                                    Cell::new(&todos[index].title),
-                                    Cell::new(&todos[index].description),
                                     Cell::new(&todos[index].done.to_string()),
+                                    Cell::new(&todos[index].title),
                                 ]));
                                 table_edited_todo.printstd();
                             } else {
