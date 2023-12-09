@@ -1,6 +1,6 @@
 use prettytable::{color, Attr, Cell, Row, Table};
 use std::{
-    fs::File,
+    fs::{File, OpenOptions},
     io::{self, BufRead, BufReader, Write},
 };
 
@@ -41,8 +41,15 @@ fn load_all_todos(filename: &str) -> io::Result<Vec<TodoItem>> {
 }
 
 // Save a new TODO to file
-fn write_new_todo() {
-    // TODO: write a new todo in file
+fn write_new_todo(filename: &str, todos: &[TodoItem]) -> io::Result<()> {
+    let mut file = OpenOptions::new().write(true).append(true).open(filename)?;
+
+    for todo in todos {
+        let line = format!("{}__{}__{}\n", todo.id, todo.done, todo.title);
+        file.write_all(line.as_bytes())?;
+    }
+
+    Ok(())
 }
 
 fn parse_todo_line(line: &str) -> Option<TodoItem> {
@@ -66,6 +73,7 @@ fn parse_todo_line(line: &str) -> Option<TodoItem> {
 
 // Function [main]
 fn main() -> io::Result<()> {
+    let mut todos: Vec<TodoItem> = load_all_todos("TODOS")?;
 
     loop {
         let mut input = String::new();
@@ -111,6 +119,7 @@ fn main() -> io::Result<()> {
                 };
 
                 todos.push(new_todo);
+                write_new_todo("TODOS", &todos)?;
 
                 for todo in todos.iter() {
                     table.add_row(Row::new(vec![
